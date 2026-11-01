@@ -1,0 +1,1603 @@
+<!doctype html><html lang="zh-CN"><meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>CX 服务调度与运营中心</title>
+<style>
+:root{
+  --bg:#071126;--panel:#0D1B38;--panel2:#12234a;--line:rgba(158,175,210,.14);
+  --ink:#F4F7FF;--sub:#9EAFD2;--faint:#5F6E94;
+  --pri:#4C8DFF;--pri-d:#3b6fd1;--ok:#29D391;--warn:#FFB84D;--err:#FF5B6E;--info:#7AA5FF;
+  --radius:14px;
+  --shadow:0 1px 2px rgba(0,0,0,.3),0 10px 30px -14px rgba(0,0,0,.55);
+}
+*{box-sizing:border-box}
+html{-webkit-text-size-adjust:100%}
+body{margin:0;background:var(--bg);color:var(--ink);
+  font:14px/1.65 -apple-system,BlinkMacSystemFont,"Segoe UI","Microsoft YaHei",sans-serif;
+  background-image:
+    radial-gradient(900px 500px at 90% -20%,rgba(76,141,255,.09),transparent 60%),
+    radial-gradient(700px 460px at -15% 110%,rgba(41,211,145,.06),transparent 55%)}
+.hidden{display:none !important}
+::-webkit-scrollbar{width:9px;height:9px}
+::-webkit-scrollbar-thumb{background:#23345e;border-radius:6px}
+::-webkit-scrollbar-track{background:transparent}
+
+/* ---------- 按钮 ---------- */
+button{border:1px solid var(--line);background:#16264e;color:var(--ink);
+  border-radius:9px;padding:7px 14px;font-size:13px;cursor:pointer;
+  transition:.15s;font-family:inherit}
+button:hover{background:#1c3160;border-color:rgba(158,175,210,.3)}
+button:disabled{opacity:.45;cursor:not-allowed}
+button.primary{background:var(--pri);border-color:transparent;color:#fff;font-weight:600}
+button.primary:hover{background:var(--pri-d)}
+button.go{background:rgba(41,211,145,.16);border-color:rgba(41,211,145,.4);color:var(--ok);font-weight:600}
+button.go:hover{background:rgba(41,211,145,.24)}
+button.danger{background:rgba(255,91,110,.1);border-color:rgba(255,91,110,.35);color:var(--err)}
+button.danger:hover{background:rgba(255,91,110,.18)}
+button.sm{padding:4px 10px;font-size:12px;border-radius:7px}
+
+input,select{width:100%;padding:9px 12px;border:1px solid var(--line);border-radius:9px;
+  font-size:13.5px;font-family:inherit;background:#0a1830;color:var(--ink);transition:.15s}
+input:focus,select:focus{outline:none;border-color:var(--pri);
+  box-shadow:0 0 0 3px rgba(76,141,255,.18)}
+input::placeholder{color:var(--faint)}
+label{display:block;font-size:12px;color:var(--sub);margin:10px 0 5px}
+
+/* ---------- 登录 ---------- */
+#loginBox{min-height:100vh;display:flex;align-items:center;justify-content:center;padding:20px}
+.login{background:var(--panel);border:1px solid var(--line);border-radius:20px;
+  padding:38px 34px 32px;width:100%;max-width:370px;box-shadow:var(--shadow)}
+.lg-ic{width:54px;height:54px;border-radius:16px;background:linear-gradient(135deg,#4C8DFF,#7AA5FF);
+  display:flex;align-items:center;justify-content:center;margin:0 auto 18px;color:#fff;
+  box-shadow:0 10px 28px -8px rgba(76,141,255,.6)}
+.login h1{text-align:center;font-size:17px;margin:0 0 4px}
+.login .lg-sub{text-align:center;color:var(--faint);font-size:11.5px;letter-spacing:1.5px;margin-bottom:22px}
+.login button{width:100%;margin-top:16px;padding:12px;font-size:15px;font-weight:600;
+  background:linear-gradient(135deg,#4C8DFF,#3b6fd1);color:#fff;border:0;border-radius:11px}
+#loginMsg{color:var(--err);font-size:13px;margin-top:12px;min-height:18px;text-align:center}
+
+/* ---------- 布局 ---------- */
+#app{display:flex;min-height:100vh}
+.side{width:216px;flex:none;background:var(--panel);border-right:1px solid var(--line);
+  padding:18px 12px;position:sticky;top:0;height:100vh;display:flex;flex-direction:column}
+.brand{display:flex;align-items:center;gap:10px;padding:4px 10px 18px}
+.brand .bi{width:34px;height:34px;border-radius:10px;flex:none;
+  background:linear-gradient(135deg,#4C8DFF,#7AA5FF);display:flex;align-items:center;
+  justify-content:center;color:#fff;box-shadow:0 6px 16px -6px rgba(76,141,255,.6)}
+.brand b{font-size:14.5px;display:block;line-height:1.3}
+.brand small{color:var(--faint);font-size:10px;letter-spacing:1.2px}
+.nav a{display:flex;align-items:center;gap:11px;padding:9.5px 12px;border-radius:10px;
+  color:var(--sub);text-decoration:none;font-size:13.5px;margin-bottom:3px;
+  transition:.13s;border:1px solid transparent}
+.nav a svg{flex:none;opacity:.85}
+.nav a:hover{color:var(--ink);background:rgba(76,141,255,.08)}
+.nav a.on{color:#fff;background:rgba(76,141,255,.16);border-color:rgba(76,141,255,.3)}
+.side .ver{margin-top:auto;color:var(--faint);font-size:11px;padding:8px 12px}
+
+.main{flex:1;min-width:0;display:flex;flex-direction:column}
+.top{position:sticky;top:0;z-index:30;background:rgba(7,17,38,.85);
+  backdrop-filter:blur(10px);border-bottom:1px solid var(--line);
+  display:flex;align-items:center;gap:12px;padding:13px 24px}
+#topTitle{font-size:16px;font-weight:700}
+#dpChip{margin-left:auto;display:inline-flex;align-items:center;gap:7px;font-size:12.5px;
+  padding:5px 13px;border-radius:20px;border:1px solid rgba(41,211,145,.4);
+  background:rgba(41,211,145,.1);color:var(--ok);font-weight:600;cursor:pointer}
+#dpChip.paused{border-color:rgba(255,184,77,.45);background:rgba(255,184,77,.12);color:var(--warn)}
+#dpChip i{width:7px;height:7px;border-radius:50%;background:currentColor}
+#btnLogout{font-size:12.5px;padding:6px 13px}
+
+.content{padding:22px 24px 70px;max-width:1180px;width:100%;margin:0 auto}
+
+/* ---------- 卡片与表格 ---------- */
+.panel{background:var(--panel);border:1px solid var(--line);border-radius:var(--radius);
+  box-shadow:var(--shadow)}
+.pd{padding:18px 20px}
+.ptitle{font-size:13px;font-weight:700;color:var(--sub);letter-spacing:.5px;
+  display:flex;align-items:center;gap:8px;margin-bottom:14px}
+.ptitle::before{content:"";width:3px;height:14px;border-radius:2px;background:var(--pri)}
+.ptitle .r{margin-left:auto;font-weight:400}
+
+.cards{display:grid;grid-template-columns:repeat(auto-fit,minmax(158px,1fr));gap:12px}
+.kpi{background:var(--panel);border:1px solid var(--line);border-radius:var(--radius);
+  padding:16px 18px;box-shadow:var(--shadow)}
+.kpi .n{font-size:26px;font-weight:800;line-height:1.2}
+.kpi .l{color:var(--sub);font-size:12px;margin-top:3px}
+
+table{width:100%;border-collapse:collapse;font-size:13px}
+th{text-align:left;color:var(--faint);font-weight:600;font-size:11.5px;
+  padding:9px 12px;border-bottom:1px solid var(--line);white-space:nowrap}
+td{padding:10px 12px;border-bottom:1px solid rgba(158,175,210,.07);vertical-align:middle}
+tr:last-child td{border-bottom:0}
+tbody tr{transition:.12s}
+tbody tr:hover{background:rgba(76,141,255,.05)}
+.mono{font-family:ui-monospace,Consolas,monospace;font-size:12px;letter-spacing:.3px}
+.sub2{color:var(--sub)}
+.faint{color:var(--faint)}
+.empty{color:var(--faint);text-align:center;padding:34px 16px;font-size:13px}
+
+/* ---------- 状态 pill ---------- */
+.tag{display:inline-flex;align-items:center;gap:5px;padding:2.5px 10px;border-radius:20px;
+  font-size:11.5px;font-weight:600;white-space:nowrap}
+.tag i{width:6px;height:6px;border-radius:50%;background:currentColor}
+.t-submitted{background:rgba(255,184,77,.13);color:var(--warn)}
+.t-queued{background:rgba(122,165,255,.13);color:var(--info)}
+.t-logging{background:rgba(76,141,255,.15);color:var(--pri)}
+.t-ready{background:rgba(255,184,77,.13);color:#ffd08a}
+.t-running{background:rgba(41,211,145,.13);color:var(--ok)}
+.t-done{background:rgba(41,211,145,.13);color:var(--ok)}
+.t-failed,.t-canceled{background:rgba(255,91,110,.13);color:var(--err)}
+.dot{width:8px;height:8px;border-radius:50%;display:inline-block;flex:none}
+.dot.on{background:var(--ok);box-shadow:0 0 0 3px rgba(41,211,145,.18)}
+.dot.off{background:#46557e}
+.dot.pause{background:var(--warn);box-shadow:0 0 0 3px rgba(255,184,77,.18)}
+.st2{font-size:11px;padding:2px 8px;border-radius:20px;font-weight:600}
+.st2.on{background:rgba(41,211,145,.13);color:var(--ok)}
+.st2.off{background:rgba(158,175,210,.12);color:var(--sub)}
+.st2.pause{background:rgba(255,184,77,.13);color:var(--warn)}
+
+/* ---------- 筛选条 ---------- */
+.bar{display:flex;gap:9px;flex-wrap:wrap;align-items:center;margin-bottom:14px}
+.bar input,.bar select{width:auto;min-width:130px;padding:7.5px 11px;font-size:12.5px}
+.bar .grow{flex:1}
+.bar label{margin:0}
+.pager{display:flex;gap:8px;align-items:center;justify-content:flex-end;
+  padding:12px 14px;color:var(--sub);font-size:12.5px}
+.pager button{padding:5px 12px;font-size:12px}
+
+/* ---------- 趋势图 ---------- */
+.trend{display:flex;align-items:flex-end;gap:14px;height:130px;padding:6px 4px 0}
+.tcol{flex:1;display:flex;flex-direction:column;align-items:center;gap:6px;min-width:0}
+.tbars{display:flex;align-items:flex-end;gap:4px;height:96px;width:100%;
+  justify-content:center}
+.tbar{width:16px;border-radius:4px 4px 2px 2px;min-height:2px;transition:.3s}
+.tbar.c{background:linear-gradient(180deg,#4C8DFF,#33569b)}
+.tbar.d{background:linear-gradient(180deg,#29D391,#1a7a58)}
+.tlab{font-size:10.5px;color:var(--faint);white-space:nowrap}
+.legend{display:flex;gap:16px;color:var(--sub);font-size:11.5px;margin-bottom:8px}
+.legend i{width:9px;height:9px;border-radius:3px;display:inline-block;margin-right:5px}
+
+/* ---------- 详情抽屉 ---------- */
+#drawer{position:fixed;top:0;right:0;bottom:0;width:520px;max-width:94vw;z-index:70;
+  background:var(--panel);border-left:1px solid var(--line);
+  box-shadow:-20px 0 60px rgba(0,0,0,.5);transform:translateX(105%);
+  transition:.25s;display:flex;flex-direction:column}
+#drawer.on{transform:none}
+#dwHead{display:flex;align-items:center;gap:10px;padding:16px 20px;
+  border-bottom:1px solid var(--line)}
+#dwHead h3{margin:0;font-size:15px;flex:1}
+#dwClose{background:none;border:0;color:var(--sub);font-size:18px;padding:4px 8px}
+#dwBody{flex:1;overflow:auto;padding:18px 20px 40px}
+.kv{display:grid;grid-template-columns:110px 1fr;gap:7px 14px;font-size:13px;margin-bottom:6px}
+.kv dt{color:var(--faint)}
+.kv dd{margin:0;word-break:break-all}
+
+.tl{display:flex;margin:16px 0 6px}
+.tnd{flex:1;position:relative;text-align:center}
+.tnd i{display:block;width:9px;height:9px;border-radius:50%;background:#23345e;
+  margin:0 auto 7px;transition:.3s}
+.tnd::before{content:"";position:absolute;top:4px;left:-50%;width:100%;height:2px;
+  background:#23345e}
+.tnd:first-child::before{display:none}
+.tnd em{font-style:normal;font-size:10.5px;color:var(--faint);white-space:nowrap}
+.tnd.past i,.tnd.now i{background:var(--pri)}
+.tnd.past::before,.tnd.now::before{background:var(--pri)}
+.tnd.now em{color:var(--ink);font-weight:700}
+
+.evline{display:flex;gap:10px;padding:8px 0;border-bottom:1px solid rgba(158,175,210,.07);
+  font-size:12.5px}
+.evline:last-child{border-bottom:0}
+.evline .ts{color:var(--faint);flex:none;font-family:ui-monospace,monospace;font-size:11.5px}
+.evline .lv{flex:none;width:52px;font-weight:700;font-size:11px}
+.evline .lv.info{color:var(--info)} .evline .lv.warn{color:var(--warn)}
+.evline .lv.error{color:var(--err)}
+.evline .m{color:var(--sub);word-break:break-all}
+
+.mask{position:fixed;inset:0;background:rgba(3,8,20,.65);display:none;
+  align-items:center;justify-content:center;z-index:90;padding:20px;
+  backdrop-filter:blur(3px)}
+.mask.on{display:flex}
+.dlg{background:var(--panel);border:1px solid var(--line);border-radius:16px;
+  padding:22px 24px;max-width:600px;width:100%;max-height:84vh;overflow:auto;
+  box-shadow:0 30px 80px -20px rgba(0,0,0,.7)}
+.dlg h3{margin:0 0 5px;font-size:15px}
+.dlg .sub2{color:var(--sub);font-size:12.5px;line-height:1.8;margin-bottom:14px}
+.dlg textarea{width:100%;height:280px;font:12px/1.6 ui-monospace,Consolas,monospace;
+  border:1px solid var(--line);border-radius:10px;padding:11px;resize:vertical;
+  background:#0a1830;color:var(--ink)}
+.dlg .foot{display:flex;gap:9px;justify-content:flex-end;margin-top:14px}
+.hint2{font-size:12px;color:var(--warn);margin-top:10px;line-height:1.7}
+.toast{position:fixed;left:50%;bottom:30px;transform:translateX(-50%) translateY(8px);
+  background:#101f42;border:1px solid var(--line);color:var(--ink);
+  padding:11px 22px;border-radius:12px;font-size:13.5px;opacity:0;pointer-events:none;
+  transition:.25s;z-index:99;box-shadow:0 16px 44px -12px rgba(0,0,0,.7)}
+.toast.on{opacity:1;transform:translateX(-50%)}
+
+.ops{display:flex;gap:8px;flex-wrap:wrap;margin:14px 0}
+.note{font-size:12px;color:var(--sub);background:rgba(255,184,77,.08);
+  border:1px solid rgba(255,184,77,.25);border-radius:10px;padding:10px 13px;
+  line-height:1.7;margin-top:12px}
+.badge{display:inline-flex;align-items:center;background:rgba(76,141,255,.14);
+  color:var(--pri);border:1px solid rgba(76,141,255,.35);border-radius:999px;
+  padding:2px 10px;font-size:11.5px;font-weight:600}
+
+@media (max-width:860px){
+  .side{width:64px;padding:18px 8px}
+  .brand b,.brand small,.nav a span,.side .ver{display:none}
+  .nav a{justify-content:center;padding:11px}
+  .content{padding:16px 14px 60px}
+  #drawer{width:100vw;max-width:100vw}
+}
+</style>
+
+<div id="loginBox">
+  <div class="login">
+    <div class="lg-ic">
+      <svg width="26" height="26" viewBox="0 0 24 24" fill="none" stroke="currentColor"
+        stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+        <rect x="3" y="11" width="18" height="11" rx="2"/><path d="M7 11V7a5 5 0 0 1 10 0v4"/>
+      </svg>
+    </div>
+    <h1>CX 服务调度与运营中心</h1>
+    <div class="lg-sub">SERVICE DISPATCH &amp; OPERATIONS CONSOLE</div>
+    <div style="display:grid;gap:10px">
+      <input id="admUser" placeholder="管理员账号" value="admin" autocomplete="username">
+      <input id="pwd" type="password" placeholder="密码" autocomplete="current-password">
+    </div>
+    <button id="btnLogin">进入控制台</button>
+    <div id="loginMsg"></div>
+  </div>
+</div>
+
+<div class="hidden" id="app">
+  <aside class="side">
+    <div class="brand">
+      <div class="bi">
+        <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor"
+          stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+          <path d="M22 10L12 5 2 10l10 5 10-5z"/>
+          <path d="M6 12.5V17c0 1.66 2.69 3 6 3s6-1.34 6-3v-4.5"/>
+        </svg>
+      </div>
+      <div><b>CX 运营中心</b><small>DISPATCH CONSOLE</small></div>
+    </div>
+    <nav class="nav" id="nav">
+      <a href="#/overview" data-r="overview">
+        <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="3" width="7" height="9" rx="1.5"/><rect x="14" y="3" width="7" height="5" rx="1.5"/><rect x="14" y="12" width="7" height="9" rx="1.5"/><rect x="3" y="16" width="7" height="5" rx="1.5"/></svg>
+        <span>运营总览</span></a>
+      <a href="#/analytics" data-r="analytics">
+        <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><line x1="18" y1="20" x2="18" y2="10"/><line x1="12" y1="20" x2="12" y2="4"/><line x1="6" y1="20" x2="6" y2="14"/></svg>
+        <span>数据分析</span></a>
+      <a href="#/tasks" data-r="tasks">
+        <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/><polyline points="14 2 14 8 20 8"/><line x1="9" y1="13" x2="15" y2="13"/><line x1="9" y1="17" x2="13" y2="17"/></svg>
+        <span>任务管理</span></a>
+      <a href="#/abnormal" data-r="abnormal">
+        <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M10.29 3.86L1.82 18a2 2 0 0 0 1.71 3h16.94a2 2 0 0 0 1.71-3L13.71 3.86a2 2 0 0 0-3.42 0z"/><line x1="12" y1="9" x2="12" y2="13"/><line x1="12" y1="17" x2="12.01" y2="17"/></svg>
+        <span>异常任务</span></a>
+      <a href="#/agents" data-r="agents">
+        <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="2" y="3" width="20" height="7" rx="2"/><rect x="2" y="14" width="20" height="7" rx="2"/><line x1="6" y1="6.5" x2="6.01" y2="6.5"/><line x1="6" y1="17.5" x2="6.01" y2="17.5"/></svg>
+        <span>服务节点</span></a>
+      <a href="#/cards" data-r="cards">
+        <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="2" y="5" width="20" height="14" rx="2"/><path d="M2 10h20"/><path d="M6 15h4"/></svg>
+        <span>卡密管理</span></a>
+      <a href="#/announce" data-r="announce">
+        <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M3 11l18-7-7 18-2.5-7.5z"/></svg>
+        <span>公告管理</span></a>
+      <a href="#/feedback" data-r="feedback">
+        <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z"/></svg>
+        <span>用户反馈</span></a>
+      <a href="#/helpadmin" data-r="helpadmin">
+        <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="10"/><path d="M9.09 9a3 3 0 0 1 5.83 1c0 2-3 3-3 3"/><line x1="12" y1="17" x2="12.01" y2="17"/></svg>
+        <span>帮助中心</span></a>
+      <a href="#/dispatch" data-r="dispatch">
+        <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="3"/><path d="M19.4 15a1.65 1.65 0 0 0 .33 1.82l.06.06a2 2 0 1 1-2.83 2.83l-.06-.06a1.65 1.65 0 0 0-1.82-.33 1.65 1.65 0 0 0-1 1.51V21a2 2 0 1 1-4 0v-.09A1.65 1.65 0 0 0 9 19.4a1.65 1.65 0 0 0-1.82.33l-.06.06a2 2 0 1 1-2.83-2.83l.06-.06a1.65 1.65 0 0 0 .33-1.82 1.65 1.65 0 0 0-1.51-1H3a2 2 0 1 1 0-4h.09A1.65 1.65 0 0 0 4.6 9a1.65 1.65 0 0 0-.33-1.82l-.06-.06a2 2 0 1 1 2.83-2.83l.06.06a1.65 1.65 0 0 0 1.82.33H9a1.65 1.65 0 0 0 1-1.51V3a2 2 0 1 1 4 0v.09a1.65 1.65 0 0 0 1 1.51 1.65 1.65 0 0 0 1.82-.33l.06-.06a2 2 0 1 1 2.83 2.83l-.06.06a1.65 1.65 0 0 0-.33 1.82V9a1.65 1.65 0 0 0 1.51 1H21a2 2 0 1 1 0 4h-.09a1.65 1.65 0 0 0-1.51 1z"/></svg>
+        <span>调度控制</span></a>
+      <a href="#/events" data-r="events">
+        <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="22 12 18 12 15 21 9 3 6 12 2 12"/></svg>
+        <span>事件日志</span></a>
+      <a href="#/audit" data-r="audit">
+        <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z"/></svg>
+        <span>操作审计</span></a>
+      <a href="#/settings" data-r="settings">
+        <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="3"/><path d="M19.4 15a1.65 1.65 0 0 0 .33 1.82l.06.06a2 2 0 1 1-2.83 2.83l-.06-.06a1.65 1.65 0 0 0-1.82-.33 1.65 1.65 0 0 0-1 1.51V21a2 2 0 1 1-4 0v-.09A1.65 1.65 0 0 0 9 19.4a1.65 1.65 0 0 0-1.82.33l-.06.06a2 2 0 1 1-2.83-2.83l.06-.06a1.65 1.65 0 0 0 .33-1.82 1.65 1.65 0 0 0-1.51-1H3a2 2 0 1 1 0-4h.09A1.65 1.65 0 0 0 4.6 9a1.65 1.65 0 0 0-.33-1.82l-.06-.06a2 2 0 1 1 2.83-2.83l.06.06a1.65 1.65 0 0 0 1.82.33H9a1.65 1.65 0 0 0 1-1.51V3a2 2 0 1 1 4 0v.09a1.65 1.65 0 0 0 1 1.51 1.65 1.65 0 0 0 1.82-.33l.06-.06a2 2 0 1 1 2.83 2.83l-.06.06a1.65 1.65 0 0 0-.33 1.82V9a1.65 1.65 0 0 0 1.51 1H21a2 2 0 1 1 0 4h-.09a1.65 1.65 0 0 0-1.51 1z"/></svg>
+        <span>系统设置</span></a>
+      <a href="#/new-task" data-r="new-task">
+        <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="10"/><line x1="12" y1="8" x2="12" y2="16"/><line x1="8" y1="12" x2="16" y2="12"/></svg>
+        <span>手动补单</span></a>
+    </nav>
+    <div class="ver">CX Control Center v2</div>
+  </aside>
+
+  <div class="main">
+    <div class="top">
+      <span id="topTitle">运营总览</span>
+      <span id="dpChip" title="点击查看调度控制"><i></i><span id="dpChipTx">调度正常</span></span>
+      <button id="btnLogout">退出登录</button>
+    </div>
+    <div class="content" id="view"></div>
+  </div>
+</div>
+
+<div id="drawer">
+  <div id="dwHead"><h3 id="dwTitle">详情</h3><button id="dwClose">✕</button></div>
+  <div id="dwBody"></div>
+</div>
+<div class="mask" id="mask"><div class="dlg" id="dlg"></div></div>
+<div class="toast" id="toast"></div>
+
+<script>
+const $ = id => document.getElementById(id);
+const API = p => String(p).replace(/^\//, '');
+const esc = s => String(s == null ? '' : s).replace(/[&<>"']/g,
+  c => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
+
+const LABEL = {
+  submitted: '已提交', queued: '等待处理', logging: '登录中',
+  ready: '已准备就绪', running: '正在运行', done: '已完成',
+  failed: '处理失败', canceled: '已取消'
+};
+const OPS = {
+  submitted: [['accept', '开始登录', 'primary'], ['cancel', '取消', 'danger']],
+  queued: [['cancel', '取消', 'danger']],
+  logging: [['cancel', '取消', 'danger']],
+  ready: [['begin', '开始任务', 'go'], ['cancel', '取消', 'danger']],
+  running: [['finish', '标记完成', 'go'], ['cancel', '取消', 'danger']],
+  done: [],
+  failed: [['cancel', '关闭', '']],
+  canceled: []
+};
+const LABEL_ACT = {accept: '已批准登录', begin: '已开始任务', finish: '已标记完成', cancel: '已取消'};
+
+function toast(msg, bad) {
+  const el = $('toast');
+  el.textContent = msg;
+  el.style.borderColor = bad ? 'rgba(255,91,110,.5)' : 'rgba(41,211,145,.4)';
+  el.classList.add('on');
+  clearTimeout(el._t);
+  el._t = setTimeout(() => el.classList.remove('on'), 2600);
+}
+
+async function call(path, opt) {
+  const r = await fetch(API(path), Object.assign(
+    {headers: {'Content-Type': 'application/json'}}, opt || {}));
+  if (r.status === 401) { showLogin(); throw new Error('未登录'); }
+  const d = await r.json().catch(() => ({}));
+  if (!r.ok) {
+    const e = (d.detail && d.detail.error) || d.error || ('HTTP ' + r.status);
+    throw new Error(e);
+  }
+  return d;
+}
+
+function ago(iso) {
+  if (!iso) return '-';
+  let s = String(iso).replace(' ', 'T');
+  if (!/[Zz]$|[+-]\d{2}:?\d{2}$/.test(s)) s += 'Z';
+  const t = Date.parse(s);
+  if (!isFinite(t)) return '-';
+  const m = Math.floor((Date.now() - t) / 60000);
+  if (m < 1) return '刚刚';
+  if (m < 60) return m + ' 分钟前';
+  const h = Math.floor(m / 60);
+  if (h < 24) return h + ' 小时前';
+  return Math.floor(h / 24) + ' 天前';
+}
+function fmt(iso) {
+  if (!iso) return '-';
+  return String(iso).slice(5, 16).replace('T', ' ');
+}
+
+/* ---------- 登录 ---------- */
+function showLogin() {
+  $('loginBox').classList.remove('hidden');
+  $('app').classList.add('hidden');
+}
+$('btnLogin').onclick = async () => {
+  const u = ($('admUser').value || 'admin').trim();
+  const p = $('pwd').value;
+  if (!p) { $('loginMsg').textContent = '请输入密码'; return; }
+  $('btnLogin').disabled = true;
+  $('loginMsg').textContent = '';
+  try {
+    const r = await fetch(API('/admin/login'), {
+      method: 'POST', headers: {'Content-Type': 'application/json'},
+      body: JSON.stringify({username: u, password: p})
+    });
+    const d = await r.json().catch(() => ({}));
+    if (r.ok && d.ok) {
+      $('loginBox').classList.add('hidden');
+      $('app').classList.remove('hidden');
+      $('pwd').value = '';
+      refreshChip();
+      route();
+    } else {
+      $('loginMsg').textContent = (d.detail && d.detail.error) || '账号或密码错误';
+    }
+  } catch (e) { $('loginMsg').textContent = '网络错误'; }
+  $('btnLogin').disabled = false;
+};
+['admUser', 'pwd'].forEach(id => $(id).addEventListener('keydown',
+  e => { if (e.key === 'Enter') $('btnLogin').click(); }));
+$('btnLogout').onclick = async () => {
+  await fetch(API('/admin/logout'), {method: 'POST'});
+  showLogin();
+};
+
+async function refreshChip() {
+  try {
+    const d = await call('/admin/dispatch');
+    const chip = $('dpChip');
+    chip.classList.toggle('paused', !!d.paused);
+    $('dpChipTx').textContent = d.paused ? '调度已暂停' : '调度正常';
+  } catch (e) {}
+}
+$('dpChip').onclick = () => { location.hash = '#/dispatch'; };
+
+/* ---------- 路由 ---------- */
+const TITLES = {overview: '运营总览', analytics: '数据分析', tasks: '任务管理',
+                abnormal: '异常任务', agents: '服务节点',
+                cards: '卡密管理', announce: '公告管理', feedback: '用户反馈',
+                helpadmin: '帮助中心', dispatch: '调度控制', events: '事件日志',
+                audit: '操作审计', settings: '系统设置', 'new-task': '手动补单'};
+let CUR = 'overview';
+
+function route() {
+  const h = (location.hash || '#/overview').replace('#/', '') || 'overview';
+  CUR = TITLES[h] ? h : 'overview';
+  $('topTitle').textContent = TITLES[CUR];
+  document.querySelectorAll('#nav a').forEach(a =>
+    a.classList.toggle('on', a.dataset.r === CUR));
+  closeDrawer();
+  VIEWS[CUR]();
+}
+window.addEventListener('hashchange', route);
+
+const VIEWS = {
+  overview: renderOverview, analytics: renderAnalytics, tasks: renderTasks,
+  abnormal: renderAbnormal, agents: renderAgents,
+  cards: renderCards, announce: renderAnnounce, feedback: renderFeedback,
+  helpadmin: renderHelpAdmin, dispatch: renderDispatch, events: renderEvents,
+  audit: renderAudit, settings: renderSettings, 'new-task': renderNewTask
+};
+setInterval(() => {
+  if ($('app').classList.contains('hidden')) return;
+  if (['overview', 'tasks', 'agents', 'dispatch'].indexOf(CUR) >= 0) VIEWS[CUR]();
+  refreshChip();
+}, 8000);
+
+/* ---------- 详情抽屉 ---------- */
+function openDrawer(title, html) {
+  $('dwTitle').textContent = title;
+  $('dwBody').innerHTML = html;
+  $('drawer').classList.add('on');
+}
+function closeDrawer() { $('drawer').classList.remove('on'); }
+$('dwClose').onclick = closeDrawer;
+
+/* ---------- 运营总览 ---------- */
+async function renderOverview() {
+  $('view').innerHTML = `
+    <div class="cards" id="ovCards"></div>
+    <div class="panel pd" style="margin-top:14px">
+      <div class="ptitle">调度状态</div>
+      <div id="ovDispatchBody"></div>
+    </div>
+    <div style="display:grid;grid-template-columns:1.2fr 1fr;gap:14px;margin-top:14px" id="ovGrid">
+      <div class="panel pd">
+        <div class="ptitle">近 7 天任务趋势</div>
+        <div class="legend"><span><i style="background:#4C8DFF"></i>新建任务</span>
+          <span><i style="background:#29D391"></i>完成任务</span></div>
+        <div class="trend" id="ovTrend"></div>
+      </div>
+      <div class="panel pd">
+        <div class="ptitle">服务节点<span class="r"><a href="#/agents" style="color:var(--pri)">全部节点 →</a></span></div>
+        <div id="ovAgents"></div>
+      </div>
+    </div>
+    <div class="panel" style="margin-top:14px">
+      <div class="pd" style="padding-bottom:0"><div class="ptitle">最近任务
+        <span class="r"><a href="#/tasks" style="color:var(--pri)">全部任务 →</a></span></div></div>
+      <div style="overflow:auto"><table><thead><tr>
+        <th>ID</th><th>课程</th><th>账号</th><th>状态</th><th>节点</th><th>提交时间</th>
+      </tr></thead><tbody id="ovRecent"></tbody></table></div>
+    </div>`;
+  try {
+    const d = await call('/admin/overview');
+    const stats = d.stats || {};
+    $('ovCards').innerHTML = [
+      ['a', d.today.created, '今日新增任务'],
+      ['w', d.pending, '待处理任务'],
+      ['r', d.active, '处理中任务'],
+      ['g', d.today.done, '今日完成任务'],
+      ['g', d.agents_online + ' / ' + (d.agents || []).length, '在线服务节点'],
+    ].map(([c, n, l]) => `<div class="kpi"><div class="n">${n}</div><div class="l">${l}</div></div>`).join('');
+
+    const dp = d.dispatch || {};
+    $('ovDispatchBody').innerHTML = dp.paused
+      ? `<div style="display:flex;align-items:center;gap:10px;color:var(--warn)">
+           <span class="dot pause"></span><b>已暂停新任务派发</b>
+           <span class="sub2" style="margin-left:auto">暂停至 ${esc((dp.pause_until || '').replace('T', ' ').slice(0, 16))}（UTC）</span></div>
+         <div class="note" style="margin-top:10px">暂停只影响新任务派发，正在运行的任务继续执行。</div>`
+      : `<div style="display:flex;align-items:center;gap:10px;color:var(--ok)">
+           <span class="dot on"></span><b>调度正常运行</b>
+           <span class="sub2" style="margin-left:auto">正在运行 ${stats.running || 0} · 已就绪 ${stats.ready || 0}</span></div>`;
+
+    const mx = Math.max(1, ...(d.trend || []).flatMap(t => [t.created, t.done]));
+    $('ovTrend').innerHTML = (d.trend || []).map(t =>
+      `<div class="tcol"><div class="tbars">
+         <div class="tbar c" style="height:${Math.round(t.created / mx * 96)}px" title="新建 ${t.created}"></div>
+         <div class="tbar d" style="height:${Math.round(t.done / mx * 96)}px" title="完成 ${t.done}"></div>
+       </div><div class="tlab">${t.date}</div></div>`).join('');
+
+    $('ovAgents').innerHTML = (d.agents || []).map(a =>
+      `<div style="display:flex;align-items:center;gap:10px;padding:8px 0;border-bottom:1px solid rgba(158,175,210,.07)">
+        <span class="dot ${a.status === 'online' ? (a.paused ? 'pause' : 'on') : 'off'}"></span>
+        <b>${esc(a.id)}</b>
+        <span class="sub2" style="margin-left:auto">在跑 ${(a.tasks || []).length} / 容量 ${a.capacity || 0}
+          ${a.paused ? ' · <span style="color:var(--warn)">已暂停接单</span>' : ''}</span>
+      </div>`).join('') || '<div class="empty">暂无节点</div>';
+
+    const r2 = await call('/admin/tasks?limit=8');
+    $('ovRecent').innerHTML = (r2.tasks || []).map(t =>
+      `<tr onclick="openTask(${t.id})" style="cursor:pointer">
+        <td class="mono">#${t.id}</td>
+        <td>${esc(t.course_name) || '<span class="faint">(未填)</span>'}</td>
+        <td class="sub2">${esc(t.username)}</td>
+        <td><span class="tag t-${t.status}"><i></i>${LABEL[t.status] || t.status}</span></td>
+        <td class="sub2">${esc(t.agent_id) || '-'}</td>
+        <td class="sub2">${fmt(t.created_at)}</td>
+      </tr>`).join('') || '<tr><td colspan="6"><div class="empty">暂无任务</div></td></tr>';
+
+    try {
+      const ab = await call('/admin/abnormal');
+      const n = (ab.failed || []).length + (ab.stale || []).length;
+      if (n > 0) {
+        $('ovCards').insertAdjacentHTML('afterend',
+          `<a href="#/abnormal" style="display:flex;align-items:center;gap:10px;margin-top:12px;
+            padding:12px 16px;border-radius:12px;text-decoration:none;
+            background:rgba(255,184,77,.09);border:1px solid rgba(255,184,77,.35);
+            color:var(--warn);font-weight:600">
+            ⚠️ 当前存在 ${n} 个异常任务（失败 ${(ab.failed || []).length} · 卡住 ${(ab.stale || []).length}）
+            <span style="margin-left:auto">查看处理 →</span></a>`);
+      }
+    } catch (e) {}
+  } catch (e) {
+    $('ovCards').innerHTML = `<div class="empty" style="grid-column:1/-1">${esc(e.message)}</div>`;
+  }
+}
+
+/* ---------- 任务管理 ---------- */
+const TS = {page: 1, size: 15, status: '', q: ''};
+
+async function renderTasks() {
+  $('view').innerHTML = `
+    <div class="bar">
+      <select id="tsStatus">
+        <option value="">全部状态</option>
+        ${Object.keys(LABEL).map(s => `<option value="${s}">${LABEL[s]}</option>`).join('')}
+      </select>
+      <input id="tsQ" placeholder="搜索课程 / 备注 / 任务 ID" style="min-width:220px">
+      <button id="tsSearch" class="primary">搜索</button>
+      <span class="grow"></span>
+      <a href="#/new-task"><button>＋ 手动补单</button></a>
+    </div>
+    <div class="panel" style="overflow:auto">
+      <table><thead><tr>
+        <th>ID</th><th>课程</th><th>账号</th><th>状态</th><th>节点</th><th>提交时间</th><th>操作</th>
+      </tr></thead><tbody id="tsList"></tbody></table>
+      <div class="pager" id="tsPager"></div>
+    </div>`;
+  $('tsStatus').value = TS.status;
+  $('tsQ').value = TS.q;
+  $('tsSearch').onclick = () => {
+    TS.status = $('tsStatus').value;
+    TS.q = $('tsQ').value.trim();
+    TS.page = 1;
+    loadTasks();
+  };
+  $('tsQ').addEventListener('keydown', e => { if (e.key === 'Enter') $('tsSearch').click(); });
+  loadTasks();
+}
+
+async function loadTasks() {
+  try {
+    const p = new URLSearchParams({page: TS.page, size: TS.size});
+    if (TS.status) p.set('status', TS.status);
+    if (TS.q) p.set('q', TS.q);
+    const d = await call('/admin/tasks?' + p.toString());
+    const list = d.tasks || [];
+    $('tsList').innerHTML = list.map(t => {
+      const ops = (OPS[t.status] || []).map(([op, txt, cls]) =>
+        `<button class="sm ${cls || ''}" data-id="${t.id}" data-op="${op}">${txt}</button>`).join(' ');
+      return `<tr>
+        <td class="mono" style="cursor:pointer" onclick="openTask(${t.id})">#${t.id}</td>
+        <td style="cursor:pointer" onclick="openTask(${t.id})">${esc(t.course_name) || '<span class="faint">(未填)</span>'}</td>
+        <td class="sub2">${esc(t.username)}</td>
+        <td><span class="tag t-${t.status}"><i></i>${LABEL[t.status] || t.status}</span></td>
+        <td class="sub2">${esc(t.agent_id) || '-'}</td>
+        <td class="sub2">${fmt(t.created_at)}</td>
+        <td onclick="event.stopPropagation()">${ops}</td>
+      </tr>`;
+    }).join('') || '<tr><td colspan="7"><div class="empty">没有符合条件的任务</div></td></tr>';
+
+    const pg = d.pagination;
+    if (pg) {
+      const pages = Math.max(1, Math.ceil(pg.total / pg.size));
+      $('tsPager').innerHTML = `
+        <span>共 ${pg.total} 条 · 第 ${pg.page} / ${pages} 页</span>
+        <button id="pgPrev" ${pg.page <= 1 ? 'disabled' : ''}>上一页</button>
+        <button id="pgNext" ${pg.page >= pages ? 'disabled' : ''}>下一页</button>`;
+      const prev = $('pgPrev'), next = $('pgNext');
+      if (prev) prev.onclick = () => { TS.page--; loadTasks(); };
+      if (next) next.onclick = () => { TS.page++; loadTasks(); };
+    } else {
+      $('tsPager').innerHTML = '';
+    }
+
+    document.querySelectorAll('#tsList button[data-op]').forEach(b => {
+      b.onclick = ev => { ev.stopPropagation(); act(b.dataset.id, b.dataset.op); };
+    });
+  } catch (e) {
+    $('tsList').innerHTML = `<tr><td colspan="7"><div class="empty">${esc(e.message)}</div></td></tr>`;
+  }
+}
+
+async function act(id, op) {
+  if (op === 'cancel' && !confirm('确定取消任务 #' + id + '？')) return;
+  try {
+    await call('/admin/task/' + id + '/' + op, {method: 'POST'});
+    toast('#' + id + ' ' + (LABEL_ACT[op] || op));
+    if ($('drawer').classList.contains('on')) openTask(id);
+    VIEWS[CUR]();
+    refreshChip();
+  } catch (e) { toast(e.message, true); }
+}
+
+async function openTask(id) {
+  try {
+    const d = await call('/admin/task/' + id);
+    const t = d.task || {};
+    const ag = d.agent;
+    const evs = d.events || [];
+    const ops = (OPS[t.status] || []).map(([op, txt, cls]) =>
+      `<button class="${cls || ''}" data-op="${op}">${txt}</button>`).join('');
+
+    const STAGES = ['已提交', '等待处理', '登录中', '已就绪', '正在运行', '已完成'];
+    const SIDX = {submitted: 0, queued: 1, logging: 2, ready: 3, running: 4, done: 5};
+    let tlHtml = '';
+    if (t.status in SIDX) {
+      const si = SIDX[t.status];
+      tlHtml = '<div class="tl">' + STAGES.map((s, i) => {
+        const c = i < si ? 'past' : (i === si ? 'now' : '');
+        return `<div class="tnd ${c}"><i></i><em>${s}</em></div>`;
+      }).join('') + '</div>';
+    } else {
+      tlHtml = `<div class="note" style="margin:12px 0">该任务已终止（${LABEL[t.status] || t.status}）</div>`;
+    }
+
+    openDrawer('任务 #' + id, `
+      <div class="kv">
+        <dt>任务 ID</dt><dd class="mono">#${t.id}</dd>
+        <dt>当前状态</dt><dd><span class="tag t-${t.status}"><i></i>${LABEL[t.status] || t.status}</span></dd>
+        <dt>课程</dt><dd>${esc(t.course_name) || '<span class="faint">(未填)</span>'}</dd>
+        <dt>授课老师</dt><dd>${esc(t.note) || '-'}</dd>
+        <dt>账号</dt><dd>${esc(t.username)}</dd>
+        <dt>提交时间</dt><dd>${fmt(t.created_at)}</dd>
+        <dt>开始时间</dt><dd>${fmt(t.started_at)}</dd>
+        <dt>完成时间</dt><dd>${fmt(t.finished_at)}</dd>
+        ${t.message ? `<dt>最近消息</dt><dd class="sub2">${esc(t.message)}</dd>` : ''}
+      </div>
+      ${tlHtml}
+      ${ops ? `<div class="ops">${ops}</div>` : ''}
+      ${ag ? `
+      <div class="ptitle" style="margin-top:16px">服务节点</div>
+      <div class="kv">
+        <dt>节点</dt><dd><a href="javascript:openAgent('${esc(ag.id)}')" style="color:var(--pri)">${esc(ag.id)}</a>
+          <span class="st2 ${ag.status === 'online' ? 'on' : 'off'}" style="margin-left:6px">${ag.status === 'online' ? '在线' : '离线'}</span></dd>
+        <dt>心跳</dt><dd class="sub2">${ago(ag.last_seen)}</dd>
+      </div>` : ''}
+      <div class="ptitle" style="margin-top:16px">操作与事件历史</div>
+      ${evs.map(e => `<div class="evline">
+        <span class="ts">${fmt(e.ts)}</span>
+        <span class="lv ${e.level}">${(e.level || '').toUpperCase()}</span>
+        <span class="m">${e.task_id ? '#' + e.task_id + ' ' : ''}${esc(e.msg || '')}</span>
+      </div>`).join('') || '<div class="empty">暂无事件</div>'}
+      <div id="shotBox"></div>`);
+
+    try {
+      const sh = await call('/admin/task/' + id + '/shots');
+      if ((sh.shots || []).length) {
+        $('shotBox').innerHTML = `<div class="ptitle" style="margin-top:16px">异常截图</div>` +
+          sh.shots.map(n => `<a href="admin/shots/${encodeURIComponent(n)}" target="_blank">
+            <img src="admin/shots/${encodeURIComponent(n)}" style="width:100%;border-radius:10px;
+              border:1px solid var(--line);margin-bottom:8px"></a>`).join('');
+      }
+    } catch (e) {}
+
+    document.querySelectorAll('#dwBody .ops button').forEach(b => {
+      b.onclick = () => act(id, b.dataset.op);
+    });
+  } catch (e) { toast(e.message, true); }
+}
+
+/* ---------- 服务节点 ---------- */
+async function renderAgents() {
+  $('view').innerHTML = `
+    <div class="bar"><span class="sub2">节点状态按最后心跳实时判定（阈值 90 秒，可调）。点击节点查看详情。</span>
+      <span class="grow"></span>
+      <button id="btnAddAgent" class="primary">＋ 新增节点</button></div>
+    <div class="cards" id="agList" style="grid-template-columns:repeat(auto-fill,minmax(300px,1fr))"></div>`;
+  $('btnAddAgent').onclick = addAgentDlg;
+  try {
+    const d = await call('/admin/dispatch');
+    $('agList').innerHTML = (d.agents || []).map(a => {
+      const on = a.status === 'online';
+      const cls = a.paused ? 'pause' : (on ? 'on' : 'off');
+      const tag = a.paused ? '已暂停接单' : (on ? '在线' : '离线');
+      const busy = (a.tasks || []).length;
+      const load = a.capacity ? Math.round(busy / a.capacity * 100) : 0;
+      return `<div class="kpi" style="cursor:pointer" onclick="openAgent('${esc(a.id)}')">
+        <div style="display:flex;align-items:center;gap:9px">
+          <span class="dot ${cls}"></span>
+          <b>${esc(a.id)}</b>
+          <span class="st2 ${cls}" style="margin-left:auto">${tag}</span>
+        </div>
+        <div class="n" style="font-size:20px;margin-top:10px">${busy} <span class="sub2" style="font-size:13px;font-weight:400">/ ${a.capacity || 0} 并发</span></div>
+        <div class="l">负载 ${load}% · 心跳 ${ago(a.last_seen)}${a.version ? ' · v' + esc(a.version) : ''}</div>
+        ${a.cpu != null ? `<div class="l">CPU ${Math.round(a.cpu)}% · 内存 ${Math.round(a.memory)}%${a.uptime ? ' · 运行 ' + esc(a.uptime) : ''}</div>` : ''}
+        ${busy ? `<div class="l" style="margin-top:2px">在跑：${a.tasks.map(x => '#' + x).join(' ')}</div>` : ''}
+      </div>`;
+    }).join('') || '<div class="empty" style="grid-column:1/-1">还没有节点，点右上角新增</div>';
+  } catch (e) {
+    $('agList').innerHTML = `<div class="empty" style="grid-column:1/-1">${esc(e.message)}</div>`;
+  }
+}
+
+async function openAgent(id) {
+  try {
+    const d = await call('/admin/agents/' + encodeURIComponent(id));
+    const a = d.agent || {};
+    const on = a.status === 'online';
+    const ops = `
+      <button class="${a.paused ? 'go' : ''}" data-act="${a.paused ? 'resume' : 'pause'}">
+        ${a.paused ? '恢复接单' : '暂停接单'}</button>
+      <button data-act="script">部署配置</button>
+      <button data-act="cap">修改容量</button>
+      <button class="danger" data-act="del">删除节点</button>`;
+    openDrawer('节点 ' + id, `
+      <div class="kv">
+        <dt>节点 ID</dt><dd class="mono">${esc(a.id)}</dd>
+        <dt>状态</dt><dd><span class="st2 ${a.paused ? 'pause' : (on ? 'on' : 'off')}">
+          ${a.paused ? '已暂停接单' : (on ? '在线' : '离线')}</span></dd>
+        <dt>当前任务</dt><dd>${(a.tasks || []).map(x => `<a href="javascript:openTask(${x})" style="color:var(--pri)">#${x}</a>`).join(' ') || '-'}</dd>
+        <dt>容量 / 上报</dt><dd>${a.capacity || 0} 并发 · 上报在跑 ${a.running || 0}</dd>
+        <dt>最后心跳</dt><dd>${ago(a.last_seen)}（${fmt(a.last_seen)} UTC）</dd>
+        <dt>健康</dt><dd class="sub2">${a.cpu != null ? 'CPU ' + Math.round(a.cpu) + '% · 内存 ' + Math.round(a.memory) + '%' : '—'}${a.uptime ? ' · 已运行 ' + esc(a.uptime) : ''}</dd>
+        <dt>环境</dt><dd class="sub2">${esc(a.browser || '-')} ${a.version ? '· v' + esc(a.version) : ''}</dd>
+        <dt>注册时间</dt><dd>${fmt(a.created_at)}</dd>
+      </div>
+      <div class="ops">${ops}</div>
+      <div class="note">暂停接单只影响新任务领取，手上正在跑的任务不受影响。删除前必须没有在跑任务。</div>
+      <div class="ptitle" style="margin-top:16px">最近结束的任务</div>
+      ${(a.recent_tasks || []).map(t => `<div class="evline">
+          <span class="ts">#${t.id}</span>
+          <span class="m"><span class="tag t-${t.status}" style="margin-right:6px">${LABEL[t.status]}</span>
+          ${esc(t.course_name) || ''} <span class="faint">${fmt(t.created_at)}</span></span>
+        </div>`).join('') || '<div class="empty">暂无</div>'}
+      <div class="ptitle" style="margin-top:16px">节点事件</div>
+      ${(a.events || []).map(e => `<div class="evline">
+        <span class="ts">${fmt(e.ts)}</span>
+        <span class="lv ${e.level}">${(e.level || '').toUpperCase()}</span>
+        <span class="m">${e.task_id ? '#' + e.task_id + ' ' : ''}${esc(e.msg || '')}</span>
+      </div>`).join('') || '<div class="empty">暂无</div>'}`);
+
+    document.querySelectorAll('#dwBody .ops button').forEach(b => {
+      b.onclick = () => agentAct(b.dataset.act, a.id);
+    });
+  } catch (e) { toast(e.message, true); }
+}
+
+async function agentAct(act, id) {
+  if (act === 'pause' || act === 'resume') {
+    try {
+      await call('/admin/agents/' + encodeURIComponent(id) + '/' + act, {method: 'POST'});
+      toast(act === 'pause' ? id + ' 已暂停接单' : id + ' 已恢复接单');
+    } catch (e) { return toast(e.message, true); }
+  } else if (act === 'script') {
+    try {
+      const d = await call('/admin/agents/' + encodeURIComponent(id) + '/token');
+      showScript(id, d.script);
+      return;
+    } catch (e) { return toast(e.message, true); }
+  } else if (act === 'cap') {
+    const v = prompt('容量：同时开几个浏览器窗口（1~12）', String(4));
+    if (v === null) return;
+    try {
+      await call('/admin/agents/' + encodeURIComponent(id) +
+                 '/capacity?capacity=' + encodeURIComponent(v.trim()), {method: 'POST'});
+      toast(id + ' 容量已改为 ' + v.trim());
+    } catch (e) { return toast(e.message, true); }
+  } else if (act === 'del') {
+    if (!confirm('删除节点 ' + id + '？\n\n该机器会立刻连不上，需重新注册。')) return;
+    try {
+      await call('/admin/agents/' + encodeURIComponent(id), {method: 'DELETE'});
+      toast('已删除 ' + id);
+      closeDrawer();
+    } catch (e) { return toast(e.message, true); }
+  }
+  openAgent(id);
+  VIEWS[CUR]();
+  refreshChip();
+}
+
+function showScript(id, text) {
+  $('dlg').innerHTML = `
+    <h3>${esc(id)} 部署配置</h3>
+    <div class="sub2">存成 <b>start.bat</b>，放到那台电脑的刷课机目录里（与 install.bat 同级），双击启动。</div>
+    <textarea id="scriptBox" readonly spellcheck="false"></textarea>
+    <div class="hint2">脚本内含该节点 token，勿外传。重新注册会换新 token，旧机器立即失效。</div>
+    <div class="foot">
+      <button id="btnCopyScript" class="primary">复制</button>
+      <button id="btnCloseDlg">关闭</button>
+    </div>`;
+  $('scriptBox').value = text;
+  $('mask').classList.add('on');
+  $('btnCloseDlg').onclick = () => $('mask').classList.remove('on');
+  $('btnCopyScript').onclick = async () => {
+    try {
+      await navigator.clipboard.writeText(text);
+      toast('已复制到剪贴板');
+    } catch (e) {
+      $('scriptBox').select();
+      toast('浏览器不让自动复制，按 Ctrl+C');
+    }
+  };
+}
+
+function addAgentDlg() {
+  $('dlg').innerHTML = `
+    <h3>新增服务节点</h3>
+    <div class="sub2">给一台新的 Windows 电脑注册身份，注册完直接给现成的启动脚本。</div>
+    <label>节点 ID</label>
+    <input id="agId" placeholder="pc-03">
+    <label>容量（同时开几个浏览器窗口）</label>
+    <input id="agCap" value="4" inputmode="numeric">
+    <div class="hint2">4 个窗口约 1.5~2G 内存，机器内存小就设 2。</div>
+    <div class="foot">
+      <button id="btnDoAdd" class="primary">注册</button>
+      <button id="btnCloseDlg2">取消</button>
+    </div>`;
+  $('mask').classList.add('on');
+  $('btnCloseDlg2').onclick = () => $('mask').classList.remove('on');
+  $('btnDoAdd').onclick = async () => {
+    const id = $('agId').value.trim();
+    const cap = $('agCap').value.trim();
+    if (!id) { toast('先填节点 ID', true); return; }
+    $('btnDoAdd').disabled = true;
+    try {
+      const d = await call('/admin/agents?agent_id=' + encodeURIComponent(id) +
+                           '&capacity=' + encodeURIComponent(cap), {method: 'POST'});
+      showScript(d.agent_id, d.script);
+      toast('注册成功，把配置拷到新电脑');
+      VIEWS[CUR]();
+    } catch (e) {
+      toast(e.message, true);
+      $('btnDoAdd').disabled = false;
+    }
+  };
+}
+$('mask').addEventListener('click', e => {
+  if (e.target === $('mask')) $('mask').classList.remove('on');
+});
+
+/* ---------- 卡密管理 ---------- */
+const CD = {q: ''};
+const CD_OPEN = {};   // 分组折叠状态：{quota: true/false}，默认全部收起
+
+async function renderCards() {
+  $('view').innerHTML = `
+    <div class="bar">
+      <input id="cdQ" placeholder="搜索卡密 / 编号" style="min-width:200px">
+      <button id="cdSearch">搜索</button>
+      <span class="grow"></span>
+      <label style="margin:0">数量</label><input id="cdGenN" value="10" style="width:66px" inputmode="numeric">
+      <label style="margin:0">每张次数</label><input id="cdGenQuota" value="1" style="width:66px" inputmode="numeric">
+      <button id="btnGen" class="primary">生成卡密</button>
+      <button id="btnExport">导出全部</button>
+    </div>
+    <div id="cdList"></div>`;
+  $('cdQ').value = CD.q;
+  $('cdSearch').onclick = () => { CD.q = $('cdQ').value.trim(); loadCards(); };
+  $('cdQ').addEventListener('keydown', e => { if (e.key === 'Enter') $('cdSearch').click(); });
+  $('btnGen').onclick = async () => {
+    try {
+      const d = await call('/admin/cards?n=' + encodeURIComponent($('cdGenN').value.trim() || '10') +
+                           '&quota=' + encodeURIComponent($('cdGenQuota').value.trim() || '1'),
+                           {method: 'POST'});
+      toast('生成 ' + d.count + ' 张');
+      loadCards();
+    } catch (e) { toast(e.message, true); }
+  };
+  $('btnExport').onclick = async () => {
+    try {
+      const r = await fetch(API('/admin/cards/export-all'));
+      if (r.status === 401) { showLogin(); return; }
+      const t = await r.text();
+      await navigator.clipboard.writeText(t);
+      toast('已复制 ' + t.split('\n').filter(Boolean).length + ' 张卡密');
+    } catch (e) { toast('复制失败，请手动导出', true); }
+  };
+  loadCards();
+}
+
+function cdExport(quota, onlyUnused) {
+  const q = '?quota=' + quota + (onlyUnused ? '&status=unused' : '');
+  fetch(API('/admin/cards/export-filter' + q)).then(async r => {
+    if (r.status === 401) { showLogin(); return; }
+    const t = await r.text();
+    const n = t.split('\n').filter(Boolean).length;
+    if (!n) return toast('这一组没有可导出的卡密', true);
+    try {
+      await navigator.clipboard.writeText(t);
+      toast('已复制 ' + n + ' 张' + (onlyUnused ? '（未使用）' : ''));
+    } catch (e) { toast('浏览器不让自动复制，请从控制台导出', true); }
+  }).catch(() => toast('导出失败', true));
+}
+
+async function loadCards() {
+  try {
+    const d = await call('/admin/cards/all?limit=2000');
+    let rows = d.detail || [];
+    if (CD.q) {
+      const k = CD.q.toUpperCase();
+      rows = rows.filter(r => (r.code || '').toUpperCase().indexOf(k) >= 0
+        || String(r.no) === CD.q);
+    }
+    if (!rows.length) { $('cdList').innerHTML = '<div class="empty">暂无卡密</div>'; return; }
+
+    // 按卡密原始次数分组：单次、两次、三次……（用完的卡仍归入原组）
+    const groups = {};
+    rows.forEach(r => {
+      const q = r.quota_total != null ? r.quota_total : r.quota;
+      (groups[q] = groups[q] || []).push(r);
+    });
+    const quotas = Object.keys(groups).map(Number).sort((a, b) => a - b);
+
+    $('cdList').innerHTML = quotas.map(q => {
+      const list = groups[q];
+      const unused = list.filter(x => x.status === 'unused');
+      const used = list.filter(x => x.status !== 'unused');
+      const open = !!CD_OPEN[q];
+      const rowsHtml = [...unused, ...used].map(r => {
+        const PILL = {unused: ['未使用', 't-done'], active: ['已激活', 't-queued'],
+                      revoked: ['已禁用', 't-failed'], expired: ['已过期', 't-failed']};
+        const pl = PILL[r.status] || [r.status, ''];
+        return `<tr>
+          <td class="mono">#${r.no}</td>
+          <td class="mono">${esc(r.code)}</td>
+          <td><span class="tag ${pl[1]}"><i></i>${pl[0]}</span></td>
+          <td class="sub2">剩余 ${r.quota}/${r.quota_total != null ? r.quota_total : r.quota}</td>
+          <td class="sub2">${fmt(r.created_at)}</td>
+          <td class="sub2">${fmt(r.activated_at)}</td>
+          <td>${r.status !== 'revoked' ? `<button class="sm danger" data-code="${esc(r.code)}">禁用</button>` : ''}</td>
+        </tr>`;
+      }).join('');
+      return `<div class="panel" style="margin-bottom:12px">
+        <div class="pd" style="padding:14px 18px;display:flex;align-items:center;gap:12px;cursor:pointer"
+             onclick="cdToggle(${q})">
+          <span style="font-size:15px;font-weight:700">${q} 次卡</span>
+          <span class="badge">共 ${list.length} 张</span>
+          <span class="sub2">未使用 ${unused.length} · 已用 ${used.length}</span>
+          <span style="margin-left:auto;display:flex;gap:8px" onclick="event.stopPropagation()">
+            <button class="sm" onclick="cdExport(${q}, false)">导出本组</button>
+            <button class="sm go" onclick="cdExport(${q}, true)">导出未使用</button>
+            <span class="sub2" style="align-self:center">${open ? '收起 ▲' : '展开 ▼'}</span>
+          </span>
+        </div>
+        ${open ? `<div style="overflow:auto"><table><thead><tr>
+            <th>编号</th><th>卡密</th><th>状态</th><th>次数</th><th>创建时间</th><th>激活时间</th><th>操作</th>
+          </tr></thead><tbody>${rowsHtml}</tbody></table></div>` : ''}
+      </div>`;
+    }).join('');
+
+    document.querySelectorAll('#cdList button[data-code]').forEach(b => {
+      b.onclick = async ev => {
+        ev.stopPropagation();
+        if (!confirm('禁用卡密 ' + b.dataset.code + '？\n禁用后无法兑换。')) return;
+        try {
+          await call('/admin/cards/' + encodeURIComponent(b.dataset.code) + '/revoke',
+                     {method: 'POST'});
+          toast('已禁用');
+          loadCards();
+        } catch (e) { toast(e.message, true); }
+      };
+    });
+  } catch (e) {
+    $('cdList').innerHTML = `<div class="empty">${esc(e.message)}</div>`;
+  }
+}
+
+function cdToggle(q) {
+  CD_OPEN[q] = !CD_OPEN[q];
+  loadCards();
+}
+
+/* ---------- 调度控制 ---------- */
+async function renderDispatch() {
+  $('view').innerHTML = `
+    <div class="panel pd" id="dpBody"></div>
+    <div class="panel pd" style="margin-top:14px">
+      <div class="ptitle">各节点接单开关<span class="r"><button id="dpAddAgent" class="primary sm">＋ 新增节点</button></span></div>
+      <div id="dpAgents"></div>
+    </div>`;
+  $('dpAddAgent').onclick = addAgentDlg;
+  try {
+    const d = await call('/admin/dispatch');
+    const paused = d.paused;
+    $('dpBody').innerHTML = `
+      <div style="display:flex;align-items:center;gap:12px;flex-wrap:wrap">
+        <div style="display:flex;align-items:center;gap:10px;${paused ? 'color:var(--warn)' : 'color:var(--ok)'}">
+          <span class="dot ${paused ? 'pause' : 'on'}" style="width:12px;height:12px"></span>
+          <b style="font-size:17px">${paused ? '已暂停新任务派发' : '调度正常运行'}</b>
+        </div>
+        <span class="grow"></span>
+        ${paused
+          ? `<span class="sub2">暂停至 ${esc((d.pause_until || '').replace('T', ' ').slice(0, 16))} UTC，到期自动恢复</span>
+             <button id="btnDpResume" class="go">立即恢复派发</button>`
+          : `<label style="margin:0">暂停时长（小时）</label>
+             <input id="dpHours" value="1" style="width:80px" inputmode="numeric">
+             <button id="btnDpPause" class="danger">暂停新任务派发</button>`}
+      </div>
+      <div class="note">暂停派发的真实影响：<b>节点不再领取新任务</b>（含课程探测），
+        <b>正在运行的任务不受影响</b>，继续执行直到管理员标记完成。
+        ${d.quiet_hours && d.quiet_hours !== 'none' ? '另设每日禁刷时段：' + esc(d.quiet_hours) + ' 点。' : ''}</div>`;
+    const resumeBtn = $('btnDpResume');
+    if (resumeBtn) resumeBtn.onclick = async () => {
+      try {
+        await call('/admin/resume', {method: 'POST'});
+        toast('已恢复派发');
+        renderDispatch(); refreshChip();
+      } catch (e) { toast(e.message, true); }
+    };
+    const pauseBtn = $('btnDpPause');
+    if (pauseBtn) pauseBtn.onclick = async () => {
+      const h = parseInt($('dpHours').value, 10);
+      if (!h || h < 1) { toast('填暂停小时数', true); return; }
+      if (!confirm('确认暂停新任务派发 ' + h + ' 小时？\n\n正在运行的任务不会受到影响。')) return;
+      try {
+        await call('/admin/pause?hours=' + h, {method: 'POST'});
+        toast('已暂停 ' + h + ' 小时');
+        renderDispatch(); refreshChip();
+      } catch (e) { toast(e.message, true); }
+    };
+    $('dpAgents').innerHTML = (d.agents || []).map(a => {
+      const on = a.status === 'online';
+      return `<div style="display:flex;align-items:center;gap:10px;padding:9px 0;
+        border-bottom:1px solid rgba(158,175,210,.07)">
+        <span class="dot ${a.paused ? 'pause' : (on ? 'on' : 'off')}"></span>
+        <b>${esc(a.id)}</b>
+        <span class="sub2">${on ? '在线' : '离线'} · 在跑 ${(a.tasks || []).length} / ${a.capacity || 0}</span>
+        <span class="grow"></span>
+        <button class="sm ${a.paused ? 'go' : ''}" data-id="${esc(a.id)}"
+          data-act="${a.paused ? 'resume' : 'pause'}">${a.paused ? '恢复接单' : '暂停接单'}</button>
+      </div>`;
+    }).join('') || '<div class="empty">暂无节点</div>';
+    document.querySelectorAll('#dpAgents button').forEach(b => {
+      b.onclick = async () => {
+        try {
+          await call('/admin/agents/' + encodeURIComponent(b.dataset.id) + '/' + b.dataset.act,
+                     {method: 'POST'});
+          toast(b.dataset.id + (b.dataset.act === 'pause' ? ' 已暂停接单' : ' 已恢复接单'));
+          renderDispatch();
+        } catch (e) { toast(e.message, true); }
+      };
+    });
+  } catch (e) {
+    $('dpBody').innerHTML = `<div class="empty">${esc(e.message)}</div>`;
+  }
+}
+
+/* ---------- 事件日志 ---------- */
+const EV = {level: '', q: ''};
+
+async function renderEvents() {
+  $('view').innerHTML = `
+    <div class="bar">
+      <select id="evLevel">
+        <option value="">全部等级</option>
+        <option value="info">INFO</option>
+        <option value="warn">WARNING</option>
+        <option value="error">ERROR</option>
+      </select>
+      <input id="evQ" placeholder="搜索内容" style="min-width:200px">
+      <button id="evSearch" class="primary">筛选</button>
+    </div>
+    <div class="panel pd" id="evList" style="max-height:70vh;overflow:auto"></div>`;
+  $('evLevel').value = EV.level;
+  $('evQ').value = EV.q;
+  $('evSearch').onclick = () => {
+    EV.level = $('evLevel').value;
+    EV.q = $('evQ').value.trim();
+    loadEvents();
+  };
+  $('evQ').addEventListener('keydown', e => { if (e.key === 'Enter') $('evSearch').click(); });
+  loadEvents();
+}
+
+async function loadEvents() {
+  try {
+    const p = new URLSearchParams({limit: 200});
+    if (EV.level) p.set('level', EV.level);
+    if (EV.q) p.set('q', EV.q);
+    const d = await call('/admin/events?' + p.toString());
+    $('evList').innerHTML = (d.events || []).map(e => `<div class="evline">
+      <span class="ts">${fmt(e.ts)}</span>
+      <span class="lv ${e.level}">${(e.level || '').toUpperCase()}</span>
+      <span class="m">${e.task_id ? `<a href="javascript:openTask(${e.task_id})" style="color:var(--pri)">#${e.task_id}</a> ` : ''}${esc(e.msg || '')}${e.agent_id ? ` <span class="faint">[${esc(e.agent_id)}]</span>` : ''}</span>
+    </div>`).join('') || '<div class="empty">暂无日志</div>';
+  } catch (e) {
+    $('evList').innerHTML = `<div class="empty">${esc(e.message)}</div>`;
+  }
+}
+
+/* ---------- 数据分析 ---------- */
+let AN_DAYS = 7;
+
+async function renderAnalytics() {
+  $('view').innerHTML = `
+    <div class="bar">
+      <div class="legend" style="margin:0">
+        ${[7, 30].map(d => `<a href="javascript:setAnDays(${d})"
+          style="color:${AN_DAYS === d ? 'var(--pri)' : 'var(--sub)'};font-weight:${AN_DAYS === d ? 700 : 400}">${d === 7 ? '最近 7 天' : '最近 30 天'}</a>`).join('<span style="color:var(--faint)">|</span>')}
+      </div>
+      <span class="grow"></span>
+      <span class="sub2" id="anHint"></span>
+    </div>
+    <div class="cards" id="anCards"></div>
+    <div class="panel pd" style="margin-top:14px">
+      <div class="ptitle">任务趋势
+        <span class="r legend" style="margin:0"><span><i style="background:#4C8DFF"></i>新增</span>
+        <span><i style="background:#29D391"></i>完成</span><span><i style="background:#FF5B6E"></i>失败</span></span></div>
+      <div class="trend" id="anTrend" style="height:150px"></div>
+    </div>
+    <div class="panel" style="margin-top:14px;overflow:auto">
+      <table><thead><tr><th>日期</th><th>新增</th><th>完成</th><th>失败</th></tr></thead>
+      <tbody id="anTable"></tbody></table>
+    </div>`;
+  loadAnalytics();
+}
+function setAnDays(d) { AN_DAYS = d; renderAnalytics(); }
+
+async function loadAnalytics() {
+  try {
+    const d = await call('/admin/analytics?days=' + AN_DAYS);
+    $('anHint').textContent = `统计范围：近 ${d.days} 天（北京时间）`;
+    const o = d.outcome, c = d.cards;
+    const pct = x => (x * 100).toFixed(1) + '%';
+    $('anCards').innerHTML = [
+      [o.done, '完成任务'], [o.failed, '失败任务'], [o.canceled, '取消任务'],
+      [pct(o.success_rate), '服务成功率'],
+      [pct(c.usage_rate), '卡密使用率（' + c.used + '/' + c.total + '）'],
+    ].map(([n, l]) => `<div class="kpi"><div class="n">${n}</div><div class="l">${l}</div></div>`).join('');
+
+    const mx = Math.max(1, ...d.trend.flatMap(t => [t.created, t.done, t.failed]));
+    $('anTrend').innerHTML = d.trend.map(t =>
+      `<div class="tcol"><div class="tbars" style="height:110px">
+         <div class="tbar c" style="height:${Math.round(t.created / mx * 106)}px" title="新增 ${t.created}"></div>
+         <div class="tbar d" style="height:${Math.round(t.done / mx * 106)}px" title="完成 ${t.done}"></div>
+         <div class="tbar" style="height:${Math.round(t.failed / mx * 106)}px;background:linear-gradient(180deg,#FF5B6E,#a12e3d)" title="失败 ${t.failed}"></div>
+       </div><div class="tlab">${t.date}</div></div>`).join('');
+    $('anTable').innerHTML = d.trend.slice().reverse().map(t =>
+      `<tr><td class="mono">${t.date}</td><td>${t.created}</td>
+       <td style="color:var(--ok)">${t.done}</td>
+       <td style="color:${t.failed ? 'var(--err)' : 'inherit'}">${t.failed}</td></tr>`).join('');
+  } catch (e) {
+    $('anCards').innerHTML = `<div class="empty" style="grid-column:1/-1">${esc(e.message)}</div>`;
+  }
+}
+
+/* ---------- 异常任务 ---------- */
+async function renderAbnormal() {
+  $('view').innerHTML = `
+    <div class="panel" style="overflow:auto">
+      <div class="pd" style="padding-bottom:0"><div class="ptitle">失败任务<span class="r" id="abFailN"></span></div></div>
+      <table><thead><tr><th>ID</th><th>课程</th><th>账号</th><th>节点</th><th>失败原因</th><th>时间</th><th>操作</th></tr></thead>
+      <tbody id="abFail"></tbody></table>
+    </div>
+    <div class="panel" style="overflow:auto;margin-top:14px">
+      <div class="pd" style="padding-bottom:0"><div class="ptitle">长时间无响应（卡住）<span class="r" id="abStaleN"></span></div></div>
+      <table><thead><tr><th>ID</th><th>课程</th><th>账号</th><th>节点</th><th>当前状态</th><th>最后更新</th><th>操作</th></tr></thead>
+      <tbody id="abStale"></tbody></table>
+    </div>`;
+  loadAbnormal();
+}
+
+async function loadAbnormal() {
+  try {
+    const d = await call('/admin/abnormal');
+    const ops = t => `
+      <button class="sm" onclick="openTask(${t.id})">详情</button>
+      <button class="sm go" onclick="abRequeue(${t.id})">重新排队</button>
+      <button class="sm danger" onclick="abCancel(${t.id})">取消</button>`;
+    $('abFailN').textContent = (d.failed || []).length + ' 条';
+    $('abStaleN').textContent = (d.stale || []).length + ' 条';
+    $('abFail').innerHTML = (d.failed || []).map(t => `<tr>
+      <td class="mono" style="cursor:pointer" onclick="openTask(${t.id})">#${t.id}</td>
+      <td>${esc(t.course_name) || '-'}</td><td class="sub2">${esc(t.username)}</td>
+      <td class="sub2">${esc(t.agent_id) || '-'}</td>
+      <td class="sub2" style="max-width:220px">${esc(t.message || '')}</td>
+      <td class="sub2">${fmt(t.updated_at)}</td><td>${ops(t)}</td></tr>`).join('')
+      || '<tr><td colspan="7"><div class="empty">暂无失败任务</div></td></tr>';
+    $('abStale').innerHTML = (d.stale || []).map(t => `<tr>
+      <td class="mono" style="cursor:pointer" onclick="openTask(${t.id})">#${t.id}</td>
+      <td>${esc(t.course_name) || '-'}</td><td class="sub2">${esc(t.username)}</td>
+      <td class="sub2">${esc(t.agent_id) || '-'}</td>
+      <td><span class="tag t-${t.status}"><i></i>${LABEL[t.status]}</span></td>
+      <td class="sub2">${fmt(t.updated_at)}</td><td>${ops(t)}</td></tr>`).join('')
+      || '<tr><td colspan="7"><div class="empty">暂无卡住任务</div></td></tr>';
+  } catch (e) {
+    $('abFail').innerHTML = `<tr><td colspan="7"><div class="empty">${esc(e.message)}</div></td></tr>`;
+  }
+}
+async function abRequeue(id) {
+  if (!confirm('将任务 #' + id + ' 重新排队？')) return;
+  try {
+    await call('/admin/task/' + id + '/requeue', {method: 'POST'});
+    toast('#' + id + ' 已重新排队');
+    loadAbnormal();
+  } catch (e) { toast(e.message, true); }
+}
+async function abCancel(id) {
+  if (!confirm('确定取消任务 #' + id + '？')) return;
+  try {
+    await call('/admin/task/' + id + '/cancel', {method: 'POST'});
+    toast('#' + id + ' 已取消');
+    loadAbnormal();
+  } catch (e) { toast(e.message, true); }
+}
+
+/* ---------- 公告管理 ---------- */
+async function renderAnnounce() {
+  $('view').innerHTML = `
+    <div class="bar"><span class="grow"></span>
+      <button id="anAdd" class="primary">＋ 新建公告</button></div>
+    <div class="panel" style="overflow:auto">
+      <table><thead><tr><th>ID</th><th>标题</th><th>状态</th><th>置顶</th><th>更新时间</th><th>操作</th></tr></thead>
+      <tbody id="anList"></tbody></table>
+    </div>`;
+  $('anAdd').onclick = () => anEditDlg(0);
+  loadAnnounce();
+}
+async function loadAnnounce() {
+  try {
+    const d = await call('/admin/announcements');
+    $('anList').innerHTML = (d.announcements || []).map(a => `<tr>
+      <td class="mono">#${a.id}</td>
+      <td style="max-width:320px">${esc(a.title)}</td>
+      <td><span class="tag ${a.published ? 't-done' : 't-canceled'}"><i></i>${a.published ? '已发布' : '已隐藏'}</span></td>
+      <td>${a.is_pinned ? '<span class="tag t-queued"><i></i>置顶</span>' : '-'}</td>
+      <td class="sub2">${fmt(a.updated_at)}</td>
+      <td>
+        <button class="sm" data-e="${a.id}">编辑</button>
+        <button class="sm ${a.published ? '' : 'go'}" data-p="${a.id}" data-v="${a.published ? 0 : 1}">${a.published ? '隐藏' : '发布'}</button>
+        <button class="sm ${a.is_pinned ? '' : 'primary'}" data-pin="${a.id}" data-v="${a.is_pinned ? 0 : 1}">${a.is_pinned ? '取消置顶' : '置顶'}</button>
+        <button class="sm danger" data-d="${a.id}">删除</button>
+      </td></tr>`).join('') || '<tr><td colspan="6"><div class="empty">暂无公告</div></td></tr>';
+    document.querySelectorAll('#anList button[data-e]').forEach(b => b.onclick = () => {
+      const a = d.announcements.find(x => x.id == b.dataset.e);
+      anEditDlg(a.id, a);
+    });
+    document.querySelectorAll('#anList button[data-p]').forEach(b => b.onclick = async () => {
+      const a = d.announcements.find(x => x.id == b.dataset.p);
+      await anSave(a.id, {title: a.title, content: a.content, is_pinned: !!a.is_pinned, published: b.dataset.v === '1'});
+    });
+    document.querySelectorAll('#anList button[data-pin]').forEach(b => b.onclick = async () => {
+      const a = d.announcements.find(x => x.id == b.dataset.pin);
+      await anSave(a.id, {title: a.title, content: a.content, is_pinned: b.dataset.v === '1', published: !!a.published});
+    });
+    document.querySelectorAll('#anList button[data-d]').forEach(b => b.onclick = async () => {
+      if (!confirm('删除该公告？')) return;
+      try { await call('/admin/announcements/' + b.dataset.d, {method: 'DELETE'}); toast('已删除'); loadAnnounce(); }
+      catch (e) { toast(e.message, true); }
+    });
+  } catch (e) {
+    $('anList').innerHTML = `<tr><td colspan="6"><div class="empty">${esc(e.message)}</div></td></tr>`;
+  }
+}
+function anEditDlg(id, a) {
+  a = a || {title: '', content: '', is_pinned: false, published: true};
+  $('dlg').innerHTML = `
+    <h3>${id ? '编辑公告 #' + id : '新建公告'}</h3>
+    <label>标题</label><input id="anT" value="${esc(a.title)}">
+    <label>正文</label><textarea id="anC" style="height:180px">${esc(a.content)}</textarea>
+    <div class="ops" style="margin:12px 0 0">
+      <label style="display:flex;align-items:center;gap:6px;margin:0"><input type="checkbox" id="anPin" style="width:auto" ${a.is_pinned ? 'checked' : ''}> 置顶</label>
+      <label style="display:flex;align-items:center;gap:6px;margin:0"><input type="checkbox" id="anPub" style="width:auto" ${a.published ? 'checked' : ''}> 发布</label>
+    </div>
+    <div class="foot">
+      <button id="anSave" class="primary">保存</button>
+      <button id="anClose">取消</button>
+    </div>`;
+  $('mask').classList.add('on');
+  $('anClose').onclick = () => $('mask').classList.remove('on');
+  $('anSave').onclick = () => anSave(id, {
+    title: $('anT').value, content: $('anC').value,
+    is_pinned: $('anPin').checked, published: $('anPub').checked
+  });
+}
+async function anSave(id, body) {
+  try {
+    if (id) await call('/admin/announcements/' + id, {method: 'PUT', body: JSON.stringify(body)});
+    else await call('/admin/announcements', {method: 'POST', body: JSON.stringify(body)});
+    toast('已保存');
+    $('mask').classList.remove('on');
+    loadAnnounce();
+  } catch (e) { toast(e.message, true); }
+}
+
+/* ---------- 用户反馈 ---------- */
+const FB = {status: 'pending'};
+async function renderFeedback() {
+  $('view').innerHTML = `
+    <div class="bar">
+      ${[['pending', '待处理'], ['processing', '处理中'], ['resolved', '已解决'], ['', '全部']].map(([v, t]) =>
+        `<button class="sm ${FB.status === v ? 'primary' : ''}" data-s="${v}">${t}</button>`).join('')}
+    </div>
+    <div class="panel" style="overflow:auto">
+      <table><thead><tr><th>ID</th><th>类型</th><th>服务编号</th><th>内容</th><th>联系方式</th><th>时间</th><th>状态</th><th>操作</th></tr></thead>
+      <tbody id="fbList"></tbody></table>
+    </div>`;
+  document.querySelectorAll('.bar button[data-s]').forEach(b => b.onclick = () => {
+    FB.status = b.dataset.s; renderFeedback();
+  });
+  loadFeedback();
+}
+async function loadFeedback() {
+  try {
+    const d = await call('/admin/feedback' + (FB.status ? '?status=' + FB.status : ''));
+    const ST = {pending: ['待处理', 't-submitted'], processing: ['处理中', 't-logging'], resolved: ['已解决', 't-done']};
+    $('fbList').innerHTML = (d.feedback || []).map(f => {
+      const [tx, cls] = ST[f.status] || [f.status, ''];
+      return `<tr>
+      <td class="mono">#${f.id}</td><td>${esc(f.kind)}</td>
+      <td>${f.task_id ? `<a href="javascript:openTask(${f.task_id})" style="color:var(--pri)">#${f.task_id}</a>` : '-'}</td>
+      <td style="max-width:260px" class="sub2">${esc(f.content)}${f.reply ? `<br><span style="color:var(--ok)">↳ 回复：${esc(f.reply)}</span>` : ''}</td>
+      <td class="sub2">${esc(f.contact) || '-'}</td>
+      <td class="sub2">${fmt(f.created_at)}</td>
+      <td><span class="tag ${cls}"><i></i>${tx}</span></td>
+      <td><button class="sm primary" data-r="${f.id}">回复</button></td></tr>`;
+    }).join('') || '<tr><td colspan="8"><div class="empty">暂无反馈</div></td></tr>';
+    document.querySelectorAll('#fbList button[data-r]').forEach(b => b.onclick = () => {
+      const f = d.feedback.find(x => x.id == b.dataset.r);
+      fbReplyDlg(f);
+    });
+  } catch (e) {
+    $('fbList').innerHTML = `<tr><td colspan="8"><div class="empty">${esc(e.message)}</div></td></tr>`;
+  }
+}
+function fbReplyDlg(f) {
+  $('dlg').innerHTML = `
+    <h3>反馈 #${f.id} · ${esc(f.kind)}</h3>
+    <div class="sub2" style="background:#0a1830;border:1px solid var(--line);border-radius:10px;padding:11px 13px">${esc(f.content)}</div>
+    <label>回复内容</label>
+    <textarea id="fbR" style="height:120px">${esc(f.reply || '')}</textarea>
+    <label>状态</label>
+    <select id="fbS">
+      ${[['processing', '处理中'], ['resolved', '已解决'], ['pending', '待处理']].map(([v, t]) =>
+        `<option value="${v}" ${f.status === v ? 'selected' : ''}>${t}</option>`).join('')}
+    </select>
+    <div class="foot">
+      <button id="fbSave" class="primary">保存回复</button>
+      <button id="fbClose">取消</button>
+    </div>`;
+  $('mask').classList.add('on');
+  $('fbClose').onclick = () => $('mask').classList.remove('on');
+  $('fbSave').onclick = async () => {
+    try {
+      await call('/admin/feedback/' + f.id + '/reply', {
+        method: 'POST',
+        body: JSON.stringify({reply: $('fbR').value, status: $('fbS').value})
+      });
+      toast('已保存');
+      $('mask').classList.remove('on');
+      loadFeedback();
+    } catch (e) { toast(e.message, true); }
+  };
+}
+
+/* ---------- 帮助中心管理 ---------- */
+async function renderHelpAdmin() {
+  $('view').innerHTML = `
+    <div class="bar"><span class="grow"></span>
+      <button id="hpAdd" class="primary">＋ 新建文章</button></div>
+    <div class="panel" style="overflow:auto">
+      <table><thead><tr><th>ID</th><th>分类</th><th>标题</th><th>排序</th><th>状态</th><th>操作</th></tr></thead>
+      <tbody id="hpList"></tbody></table>
+    </div>`;
+  $('hpAdd').onclick = () => hpEditDlg(0);
+  loadHelpAdmin();
+}
+async function loadHelpAdmin() {
+  try {
+    const d = await call('/admin/help');
+    $('hpList').innerHTML = (d.articles || []).map(a => `<tr>
+      <td class="mono">#${a.id}</td><td>${esc(a.category)}</td>
+      <td style="max-width:340px">${esc(a.title)}</td><td>${a.sort}</td>
+      <td><span class="tag ${a.published ? 't-done' : 't-canceled'}"><i></i>${a.published ? '已发布' : '已隐藏'}</span></td>
+      <td>
+        <button class="sm" data-e="${a.id}">编辑</button>
+        <button class="sm ${a.published ? '' : 'go'}" data-p="${a.id}" data-v="${a.published ? 0 : 1}">${a.published ? '隐藏' : '发布'}</button>
+        <button class="sm danger" data-d="${a.id}">删除</button>
+      </td></tr>`).join('') || '<tr><td colspan="6"><div class="empty">暂无文章</div></td></tr>';
+    document.querySelectorAll('#hpList button[data-e]').forEach(b => b.onclick = () => {
+      const a = d.articles.find(x => x.id == b.dataset.e);
+      hpEditDlg(a.id, a);
+    });
+    document.querySelectorAll('#hpList button[data-p]').forEach(b => b.onclick = async () => {
+      const a = d.articles.find(x => x.id == b.dataset.p);
+      await hpSave(a.id, {title: a.title, content: a.content, category: a.category, sort: a.sort, published: b.dataset.v === '1'});
+    });
+    document.querySelectorAll('#hpList button[data-d]').forEach(b => b.onclick = async () => {
+      if (!confirm('删除该文章？')) return;
+      try { await call('/admin/help/' + b.dataset.d, {method: 'DELETE'}); toast('已删除'); loadHelpAdmin(); }
+      catch (e) { toast(e.message, true); }
+    });
+  } catch (e) {
+    $('hpList').innerHTML = `<tr><td colspan="6"><div class="empty">${esc(e.message)}</div></td></tr>`;
+  }
+}
+function hpEditDlg(id, a) {
+  a = a || {title: '', content: '', category: '常见问题', sort: 0, published: true};
+  $('dlg').innerHTML = `
+    <h3>${id ? '编辑文章 #' + id : '新建文章'}</h3>
+    <label>标题</label><input id="hpT" value="${esc(a.title)}">
+    <div style="display:grid;grid-template-columns:1fr 120px;gap:12px">
+      <div><label>分类</label><input id="hpC" value="${esc(a.category)}"></div>
+      <div><label>排序（小在前）</label><input id="hpS" value="${a.sort}" inputmode="numeric"></div>
+    </div>
+    <label>正文</label>
+    <textarea id="hpB" style="height:180px">${esc(a.content)}</textarea>
+    <div class="ops" style="margin:12px 0 0">
+      <label style="display:flex;align-items:center;gap:6px;margin:0"><input type="checkbox" id="hpP" style="width:auto" ${a.published ? 'checked' : ''}> 发布</label>
+    </div>
+    <div class="foot">
+      <button id="hpSave" class="primary">保存</button>
+      <button id="hpClose">取消</button>
+    </div>`;
+  $('mask').classList.add('on');
+  $('hpClose').onclick = () => $('mask').classList.remove('on');
+  $('hpSave').onclick = () => hpSave(id, {
+    title: $('hpT').value, content: $('hpB').value,
+    category: $('hpC').value, sort: parseInt($('hpS').value || '0', 10),
+    published: $('hpP').checked
+  });
+}
+async function hpSave(id, body) {
+  try {
+    if (id) await call('/admin/help/' + id, {method: 'PUT', body: JSON.stringify(body)});
+    else await call('/admin/help', {method: 'POST', body: JSON.stringify(body)});
+    toast('已保存');
+    $('mask').classList.remove('on');
+    loadHelpAdmin();
+  } catch (e) { toast(e.message, true); }
+}
+
+/* ---------- 操作审计 ---------- */
+async function renderAudit() {
+  $('view').innerHTML = `
+    <div class="panel" style="overflow:auto">
+      <table><thead><tr><th>时间</th><th>操作</th><th>对象</th><th>详情</th><th>IP</th></tr></thead>
+      <tbody id="auList"></tbody></table>
+    </div>`;
+  try {
+    const d = await call('/admin/audit?limit=200');
+    $('auList').innerHTML = (d.audit || []).map(a => `<tr>
+      <td class="sub2 mono">${fmt(a.ts)}</td>
+      <td><span class="badge">${esc(a.action)}</span></td>
+      <td class="mono">${esc(a.object) || '-'}</td>
+      <td class="sub2">${esc(a.detail) || '-'}</td>
+      <td class="sub2">${esc(a.ip) || '-'}</td></tr>`).join('')
+      || '<tr><td colspan="5"><div class="empty">暂无审计记录</div></td></tr>';
+  } catch (e) {
+    $('auList').innerHTML = `<tr><td colspan="5"><div class="empty">${esc(e.message)}</div></td></tr>`;
+  }
+}
+
+/* ---------- 系统设置 ---------- */
+async function renderSettings() {
+  $('view').innerHTML = `
+    <div class="panel pd" style="max-width:640px">
+      <div class="ptitle">系统设置<span class="r sub2">保存后写操作审计</span></div>
+      <div id="stForm"><div class="empty">加载中…</div></div>
+      <div class="ops" style="margin-top:16px">
+        <button id="stSave" class="primary">保存设置</button>
+      </div>
+      <div class="note">数值项有范围校验；任务租约和在线阈值修改后对新派发/新判定即时生效。</div>
+    </div>`;
+  try {
+    const d = await call('/admin/settings');
+    $('stForm').innerHTML = Object.entries(d.settings).map(([k, s]) => `
+      <label>${esc(s.label)}</label>
+      <input data-k="${k}" value="${esc(s.value)}" ${s.type === 'int' ? 'inputmode="numeric"' : ''}>
+    `).join('') + `
+      <div class="ptitle" style="margin-top:22px">管理员账号</div>
+      <div style="display:grid;grid-template-columns:1fr 1fr;gap:0 14px">
+        <div><label>登录账号</label><input id="admNewUser" placeholder="留空则不改"></div>
+        <div><label>新密码（≥8 位）</label><input id="admNewPwd" type="password" placeholder="留空则不改"></div>
+      </div>
+      <div class="ops" style="margin-top:10px">
+        <button id="admSave" class="sm">保存账号密码</button>
+      </div>`;
+    $('admSave').onclick = async () => {
+      const u = $('admNewUser').value.trim(), p = $('admNewPwd').value;
+      if (!u && !p) return toast('账号和密码都空着，无需保存', true);
+      if (!confirm('确认修改管理员账号/密码？\n\n改完需要重新登录，操作写入审计。')) return;
+      try {
+        const r = await call('/admin/account', {
+          method: 'POST', body: JSON.stringify({username: u, password: p})
+        });
+        toast('已修改：' + (r.changed || []).join('、') + '，请重新登录');
+        setTimeout(() => showLogin(), 1200);
+      } catch (e) { toast(e.message, true); }
+    };
+    $('stSave').onclick = async () => {
+      if (!confirm('确认保存系统设置？\n\n修改会写入操作审计。')) return;
+      const body = {};
+      document.querySelectorAll('#stForm input').forEach(i => {
+        body[i.dataset.k] = i.value.trim();
+      });
+      try {
+        const r = await call('/admin/settings', {method: 'POST', body: JSON.stringify(body)});
+        toast('已保存：' + (r.changed || []).join('、'));
+        renderSettings();
+      } catch (e) { toast(e.message, true); }
+    };
+  } catch (e) {
+    $('stForm').innerHTML = `<div class="empty">${esc(e.message)}</div>`;
+  }
+}
+
+/* ---------- 手动补单 ---------- */
+function renderNewTask() {
+  $('view').innerHTML = `
+    <div class="panel pd" style="max-width:640px">
+      <div class="ptitle">新建任务<span class="r"><span class="badge">管理员操作 · admin_manual</span></span></div>
+      <div style="display:grid;grid-template-columns:repeat(auto-fit,minmax(220px,1fr));gap:0 16px">
+        <div><label>学习通账号</label><input id="f_user" placeholder="手机号"></div>
+        <div><label>密码</label><input id="f_pwd" type="password"></div>
+        <div><label>课程名称</label><input id="f_name" placeholder="照抄课表上的完整课程名"></div>
+        <div><label>授课老师 / 备注</label><input id="f_note" placeholder="选填"></div>
+      </div>
+      <div class="ops" style="margin-top:18px">
+        <button id="btnCreate" class="primary">提交补单</button>
+      </div>
+      <div class="note">补单不填卡密时系统自动生成一张并记账；创建来源记录为管理员补单，全程写入事件日志。</div>
+    </div>`;
+  $('btnCreate').onclick = async () => {
+    const u = $('f_user').value.trim(), p = $('f_pwd').value;
+    const n = $('f_name').value.trim(), note = $('f_note').value.trim();
+    if (!u || !p || !n) { toast('账号、密码、课程名都要填', true); return; }
+    $('btnCreate').disabled = true;
+    try {
+      await call('/admin/task', {
+        method: 'POST',
+        body: JSON.stringify({username: u, password: p, course_name: n, note: note})
+      });
+      toast('补单已创建');
+      $('f_user').value = $('f_pwd').value = $('f_name').value = $('f_note').value = '';
+      location.hash = '#/tasks';
+    } catch (e) { toast(e.message, true); }
+    $('btnCreate').disabled = false;
+  };
+}
+
+/* ---------- 启动 ---------- */
+(async () => {
+  try {
+    await call('/admin/stats');
+    $('loginBox').classList.add('hidden');
+    $('app').classList.remove('hidden');
+    refreshChip();
+    route();
+  } catch (e) { showLogin(); }
+})();
+</script>
+</html>

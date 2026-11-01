@@ -1,0 +1,26 @@
+[
+  {
+    "contentType": "json",
+    "data": {
+      "images": {
+        "handler": "return (env) => env.images"
+      },
+      "options": "${options}",
+      "suggestion_options": "${suggestion_options}",
+      "suggestion_title": "${suggestion_title}",
+      "title": "${title}",
+      "token": "YOUR_TIKU_TOKEN",
+      "type": "${type}",
+      "v": "2"
+    },
+    "handler": "return (res)=>res.code === 0 ? [res.data.answer, undefined, { tags: res.data.tags }] : [res.data.question, res.data.answer, { ai: res.data.ai, tags: res.data.tags }]",
+    "headers": {
+      "Content-Type": "application/json"
+    },
+    "homepage": "https://tk.enncy.cn/",
+    "method": "post",
+    "name": "言溪题库",
+    "type": "GM_xmlhttpRequest",
+    "url": "https://tk.enncy.cn/query"
+  }
+]
